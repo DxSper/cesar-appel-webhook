@@ -78,12 +78,13 @@ def check_calls(session, my_uuid):
                         student_reg = line.get('planningGroupSubscription', {}).get('studentRegistration', {})
                         if student_reg.get('uuid') == my_uuid:
                             sig = line.get('signature')
+                            att_without_sig = line.get('attendanceWithoutSignature', False)
                             
                             # Compter les signatures
                             signed_count = sum(1 for l in lines if l.get('signature') and l.get('signature', {}).get('signed'))
                             
-                            # Si au moins un a signé et moi non = appel actif
-                            if sig is None and signed_count > 0:
+                            # Détecter l'appel : signature null ET pas d'exemption
+                            if sig is None and not att_without_sig:
                                 calls.append({
                                     'description': desc,
                                     'start_time': datetime.fromtimestamp(start_ts).strftime('%H:%M'),
