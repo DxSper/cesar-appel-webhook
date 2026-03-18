@@ -59,9 +59,19 @@ class DiscordNotifier:
                 "embeds": [embed]
             }
             
-            response = requests.post(self.webhook_url, json=payload)
-            return response.status_code in [200, 204]
-            
+            response = requests.post(self.webhook_url, json=payload, timeout=10)
+            if response.status_code not in [200, 204]:
+                logger.warning(
+                    "Discord webhook returned non-success status %s: %s",
+                    response.status_code,
+                    (response.text[:200] if hasattr(response, "text") else "")
+                )
+                return False
+            return True
+
+        except requests.Timeout as e:
+            logger.error(f"Timeout while sending attendance alert to Discord: {e}")
+            return False
         except Exception as e:
             logger.error(f"Error formatting/sending attendance alert: {e}")
             return False
