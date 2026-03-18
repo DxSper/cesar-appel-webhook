@@ -109,9 +109,15 @@ def send_discord(call):
         "content": f"<@&{ROLE_ID}> 🎒 **Appel César disponible!**",
         "embeds": [{
             "title": "🔔 Appel détecté sur César!",
+            "url": BASE_URL,
             "description": f"Une feuille d'émargement est disponible pour:\n**{call['description']}**",
             "color": 15158332,
             "fields": [
+                {
+                    "name": "Lien",
+                    "value": f"[Ouvrir César]({BASE_URL})",
+                    "inline": False
+                },
                 {
                     "name": "Heure",
                     "value": call['start_time'],
