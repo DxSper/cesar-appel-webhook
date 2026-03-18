@@ -57,6 +57,7 @@ def check_calls(session, my_uuid):
     """Vérifie les appels actifs."""
     r = session.get(BASE_URL)
     soup = BeautifulSoup(r.text, 'html.parser')
+    now = datetime.now()
     
     calls = []
     
@@ -67,7 +68,12 @@ def check_calls(session, my_uuid):
             for evt in events:
                 desc = evt.get('description', '')
                 start_ts = evt.get('startDate', 0) / 1000
+                end_ts = evt.get('endDate', 0) / 1000
                 teachers = evt.get('teachers', [])
+                
+                # Ignorer les événements déjà terminés
+                if end_ts < now.timestamp():
+                    continue
                 
                 att_sheet = evt.get('attendanceSheet')
                 if att_sheet:

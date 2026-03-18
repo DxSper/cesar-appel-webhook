@@ -144,6 +144,12 @@ class CesarBot:
                             if evt_uuid in self.notified_events:
                                 continue
                             
+                            # Skip if event has already ended
+                            end_ts = evt.get('endDate', 0) / 1000
+                            if end_ts < datetime.now().timestamp():
+                                logger.debug(f"Event {evt.get('description')}: Event already ended - skipping")
+                                continue
+                            
                             # Check for attendance sheet
                             att_sheet = evt.get('attendanceSheet')
                             if not att_sheet:
