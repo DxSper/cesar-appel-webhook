@@ -5,6 +5,7 @@
 
 # Scripts (contain credentials/APIs)
 scripts/
+.private/
 
 # Logs
 *.log
