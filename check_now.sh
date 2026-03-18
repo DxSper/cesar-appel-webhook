@@ -1,10 +1,8 @@
 #!/bin/bash
-# Script pour cron - vérifie une fois et quitte
-# Usage: ajouter à crontab
-#
-# Exemple crontab:
-# */5 9-12 * * 1-5 /home/USERNAME/cesar_ping/check_now.sh
-# */5 13-17 * * 1-5 /home/USERNAME/cesar_ping/check_now.sh
+# Script pour cron - lance une session du bot
+# Usage: ./check_now.sh [morning|afternoon]
+#   morning  = 9:13 - 13:43
+#   afternoon = 13:43 - 18:00
 
 cd "$(dirname "$0")"
 
@@ -13,5 +11,31 @@ if [ -f .env ]; then
     export $(cat .env | grep -v '^#' | xargs)
 fi
 
-# Run the bot once
-python3 bot.py --webhook "$DISCORD_WEBHOOK_URL"
+SESSION=${1:-morning}
+
+case $SESSION in
+    morning)
+        echo "Starting morning session (9:13 - 13:43)"
+        python3 bot.py \
+            --webhook "$DISCORD_WEBHOOK_URL" \
+            --start-hour 9 \
+            --start-minute 13 \
+            --end-hour 13 \
+            --end-minute 43 \
+            --check-interval 30
+        ;;
+    afternoon)
+        echo "Starting afternoon session (13:43 - 18:00)"
+        python3 bot.py \
+            --webhook "$DISCORD_WEBHOOK_URL" \
+            --start-hour 13 \
+            --start-minute 43 \
+            --end-hour 18 \
+            --end-minute 0 \
+            --check-interval 30
+        ;;
+    *)
+        echo "Usage: $0 [morning|afternoon]"
+        exit 1
+        ;;
+esac
