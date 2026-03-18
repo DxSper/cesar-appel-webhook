@@ -1,8 +1,8 @@
 #!/bin/bash
-# Script pour cron - lance une session du bot
+# Script pour cron - lance une session du bot puis quitte
 # Usage: ./check_now.sh [morning|afternoon]
 #   morning  = 9:13 - 13:43
-#   afternoon = 13:43 - 18:00
+#   afternoon = 13:43 - 17:15
 
 cd "$(dirname "$0")"
 
@@ -16,8 +16,7 @@ SESSION=${1:-morning}
 case $SESSION in
     morning)
         echo "Starting morning session (9:13 - 13:43)"
-        python3 bot.py \
-            --webhook "$DISCORD_WEBHOOK_URL" \
+        python3 main.py session \
             --start-hour 9 \
             --start-minute 13 \
             --end-hour 13 \
@@ -25,13 +24,12 @@ case $SESSION in
             --check-interval 30
         ;;
     afternoon)
-        echo "Starting afternoon session (13:43 - 18:00)"
-        python3 bot.py \
-            --webhook "$DISCORD_WEBHOOK_URL" \
+        echo "Starting afternoon session (13:43 - 17:15)"
+        python3 main.py session \
             --start-hour 13 \
             --start-minute 43 \
-            --end-hour 18 \
-            --end-minute 0 \
+            --end-hour 17 \
+            --end-minute 15 \
             --check-interval 30
         ;;
     *)

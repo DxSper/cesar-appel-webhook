@@ -28,6 +28,63 @@ class CesarAppelBot:
                 if self.notifier.send_attendance_alert(call):
                     self.notified_events.add(call_id)
 
+    def run_session(self, start_hour, start_minute, end_hour, end_minute, check_interval=30):
+        """
+        Run for one session (morning or afternoon), then exit.
+        For use with cron: cron launches this, it runs and exits.
+        
+        Args:
+            start_hour: Hour to start checking
+            start_minute: Minute to start checking
+            end_hour: Hour to stop checking
+            end_minute: Minute to stop checking
+            check_interval: Seconds between checks (default: 30)
+        """
+        logger.info(f"Session starting: {start_hour:02d}:{start_minute:02d} - {end_hour:02d}:{end_minute:02d}")
+        
+        if not self.client.login():
+            logger.error("Failed to login. Exiting.")
+            return
+        
+        # Check if there are classes today
+        if not self.client.has_events_today():
+            logger.info("No classes scheduled for today. Exiting.")
+            return
+        
+        end_time = datetime.now().replace(
+            hour=end_hour, minute=end_minute, second=0, microsecond=0
+        )
+        
+        # Wait until start time if not yet reached
+        now = datetime.now()
+        start_time = now.replace(hour=start_hour, minute=start_minute, second=0, microsecond=0)
+        if start_time < now:
+            start_time += timedelta(days=1)
+        
+        if now < start_time:
+            wait_seconds = (start_time - now).total_seconds()
+            logger.info(f"Waiting {wait_seconds:.0f}s until {start_hour:02d}:{start_minute:02d}")
+            time.sleep(min(wait_seconds, 300))
+        
+        # Main loop - run until end time or all events finished
+        while datetime.now() < end_time:
+            events = self.client.get_raw_events()
+            
+            # Check if all today's events have ended
+            next_event_end = self.client.get_next_event_end(events)
+            if next_event_end is None:
+                logger.info("No more events today. Exiting session.")
+                break
+            
+            # If next event ends before our end time, we could exit earlier
+            # but let's keep checking until our end time to catch late attendance calls
+            
+            self._check_and_notify_attendance()
+            logger.debug(f"Sleeping {check_interval}s until next check")
+            time.sleep(check_interval)
+        
+        logger.info(f"Session ended at {end_hour:02d}:{end_minute:02d}. Bot exiting.")
+    
     def run_daemon(self, start_hour=9, start_minute=13, afternoon_hour=13, afternoon_minute=43, schedule_hour=8, schedule_minute=0, check_interval=60):
         """
         Main daemon loop that respects class hours to save resources.

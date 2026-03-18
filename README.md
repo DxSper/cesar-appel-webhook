@@ -5,9 +5,10 @@ Un bot léger qui surveille l'application César pour détecter les appels de pr
 ## Fonctionnalités
 
 - ✅ **Appels** : Détecte automatiquement quand un appel est lancé et vous notifie sur Discord.
-- ✅ **Emploi du temps** : Vous envoie le planning du jour tous les matins à 8h00.
+- ✅ **Emploi du temps** : Vous envoie le planning du jour tous les matins à 8h00 (mode daemon).
 - ✅ **Intelligent** : Ne vous spamme pas si vous avez déjà signé.
 - ✅ **Optimisé** : Se met en veille hors des heures de cours pour économiser les ressources.
+- ✅ **Léger** : Mode cron disponible (pas de processus permanent).
 
 ## Installation
 
@@ -26,8 +27,6 @@ cp .env.example .env
 
 ## Configuration (.env)
 
-Modifiez le fichier `.env` avec vos informations :
-
 ```env
 # Identifiants César
 CESAR_USERNAME=votre_identifiant
@@ -40,87 +39,113 @@ DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/VOTRE_WEBHOOK_ID/VOTRE_WEBH
 DISCORD_ROLE_ID=1234567890123456789
 ```
 
-### Comment obtenir l'ID du rôle Discord
+### Obtenir l'ID du rôle Discord
 
 1. Activez le **Mode Développeur** dans Discord (Paramètres > Avancé > Mode Développeur)
-2. Faites un **clic droit** sur le rôle à mentionner
-3. Cliquez sur **"Copier l'ID"** (Attention : copiez bien l'ID d'un Rôle et non d'un Utilisateur)
-4. Assurez-vous que le rôle est "Mentionnable par tout le monde" dans les paramètres du serveur.
+2. Clic droit sur le rôle > **"Copier l'ID"**
+3. Assurez-vous que le rôle est "Mentionnable par tout le monde".
 
-## Utilisation (CLI)
+## Utilisation (méthode recommandée : cron)
 
-Le bot se contrôle via `main.py` :
+Le bot fonctionne par **sessions** : matin (9h13-13h43) et après-midi (13h43-17h15).
 
-### Mode daemon (Recommandé)
+### 1. Rendre le script exécutable
+
+```bash
+chmod +x check_now.sh
+```
+
+### 2. Ajouter au crontab
+
+```bash
+crontab -e
+```
+
+### 3. Ajouter ces lignes
+
+```cron
+# Session matin : lance à 9h13, vérifie toutes les 30s jusqu'à 13h43
+13 9 * * 1-5 /home/USERNAME/cesar-appel-webhook/check_now.sh morning
+
+# Session après-midi : lance à 13h43, vérifie toutes les 30s jusqu'à 17h15
+43 13 * * 1-5 /home/USERNAME/cesar-appel-webhook/check_now.sh afternoon
+```
+
+**⚠️** Remplacez `/home/USERNAME/cesar-appel-webhook` par votre chemin.
+
+### Comment ça marche
+
+| Cron lance à | Session | Vérifie | S'arrête à |
+|---------------|---------|---------|------------|
+| 9h13 | Matin | Toutes les 30s | 13h43 |
+| 13h43 | Après-midi | Toutes les 30s | 17h15 |
+
+- Si **pas de cours aujourd'hui** → le bot quitte immédiatement (pas de checks inutiles)
+- Pas de processus la **nuit**
+
+### Test manuel
+
+```bash
+./check_now.sh morning   # Session matin
+./check_now.sh afternoon # Session après-midi
+```
+
+## Alternative : Mode daemon (processus permanent)
+
+Si vous préférez un processus qui tourne en continu :
 
 ```bash
 python3 main.py run
 ```
 
-Surveille les appels pendant les heures de cours (9h13-13h43 le matin, 13h43-18h l'après-midi) et envoie le planning à 8h00.
-
-Options disponibles :
-- `--start-hour 9 --start-minute 13` : Heure de début (défaut: 9h13)
-- `--afternoon-hour 13 --afternoon-minute 43` : Heure de reprise après-midi (défaut: 13h43)
-- `--schedule-hour 8 --schedule-minute 0` : Heure d'envoi du planning (défaut: 8h00)
-- `--check-interval 60` : Intervalle entre chaque vérification en secondes (défaut: 60)
+Options :
+- `--start-hour 9 --start-minute 13` : Début session matin
+- `--afternoon-hour 13 --afternoon-minute 43` : Début session après-midi
+- `--schedule-hour 8 --schedule-minute 0` : Envoi du planning à 8h
+- `--check-interval 60` : Intervalle entre chaque vérification
 
 ### Mode écoute continue
 
-Surveillance agressive toutes les 30 secondes sans mise en veille :
+Surveillance agressive sans mise en veille :
 ```bash
 python3 main.py listen
 ```
 
 ### Vérification rapide
 
-Vérifie l'état de la connexion sans envoyer de notification :
 ```bash
-python3 main.py verify
+python3 main.py verify   # Vérifie l'état sans notification
+python3 main.py test     # Vérifie et notifie si appel actif
 ```
 
-### Test complet
+## Détection des appels
 
-Vérification complète avec envoi de notification si un appel est actif :
-```bash
-python3 main.py test
-```
-
-## Fonctionnement de la détection
-
-Le bot envoie une notification Discord quand :
-1. ✅ Une feuille d'émargement existe.
-2. ✅ Vous n'avez pas encore signé (votre signature est null ou signed=false).
-3. ✅ D'autres étudiants ont déjà commencé à signer OU la feuille est marquée comme clôturée par le prof.
+Le bot notifie quand :
+1. ✅ Une feuille d'émargement existe
+2. ✅ Vous n'avez pas encore signé
+3. ✅ D'autres étudiants ont signé OU la feuille est clôturée par le prof
 
 ## Structure du projet
 
 ```text
 cesar-appel-webhook/
-├── .env                     # Vos identifiants (ignoré par git)
-├── .env.example             # Template de configuration
-├── main.py                  # Point d'entrée principal (CLI)
-├── requirements.txt          # Dépendances Python
-├── run_bot.sh               # Script de lancement
-├── cesar-bot.service.example # Template systemd
-└── src/                     # Code source
-    ├── cesar_client.py       # Connexion et scraping César
-    ├── discord_notifier.py   # Envoi des embeds Discord
-    ├── bot_loop.py           # Boucles de surveillance
-    └── diagnostics.py         # Tests et vérification
+├── main.py                  # Point d'entrée CLI
+├── check_now.sh            # Script pour cron (sessions)
+├── run_bot.sh              # Script pour daemon
+├── requirements.txt
+├── cesar-bot.service.example
+└── src/
+    ├── cesar_client.py       # Connexion César
+    ├── discord_notifier.py   # Notifications Discord
+    ├── bot_loop.py          # Boucles de surveillance
+    └── diagnostics.py       # Tests
 ```
 
-## Installation en service (systemd)
-
-Pour faire tourner le bot en arrière-plan :
+## Service systemd (optionnel)
 
 ```bash
-# Copier et adapter la configuration
 sudo cp cesar-bot.service.example /etc/systemd/system/cesar-bot.service
-
-# Éditer avec vos chemins (remplacez USERNAME)
-sudo nano /etc/systemd/system/cesar-bot.service
-
+sudo nano /etc/systemd/system/cesar-bot.service  # Remplacez USERNAME
 sudo systemctl daemon-reload
 sudo systemctl enable cesar-bot
 sudo systemctl start cesar-bot
@@ -128,10 +153,10 @@ sudo systemctl start cesar-bot
 
 ## Dépannage
 
-- **Erreur de connexion** : Vérifiez vos identifiants dans `.env`. Utilisez `python3 main.py verify` pour diagnostiquer.
-- **Rôle Inconnu sur Discord** : Assurez-vous que l'ID est bien un rôle et non un utilisateur.
-- **Pas de notification** : Lancez `python3 main.py verify`. S'il n'y a **aucun étudiant signé**, le bot ne notifie pas (pour éviter les faux positifs).
+- **Erreur de connexion** : Vérifiez `.env`. Testez : `python3 main.py verify`
+- **Pas de notification** : Lancez `verify`. Si aucun étudiant n'a signé, le bot ne notifie pas.
+- **Cron ne marche pas** : `chmod +x check_now.sh`, testez manuellement `./check_now.sh morning`
 
 ## Licence
 
-MIT - Libre d'utilisation et de modification.
+MIT

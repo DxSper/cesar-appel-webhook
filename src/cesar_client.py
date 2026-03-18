@@ -128,6 +128,35 @@ class CesarClient:
         today_lessons.sort(key=lambda l: l['start_time'])
         return today_lessons
 
+    def has_events_today(self):
+        """Check if there are any classes scheduled for today."""
+        today = datetime.now().date()
+        events = self.get_raw_events()
+        
+        for evt in events:
+            start_ts = evt.get('startDate', 0) / 1000
+            if start_ts <= 0:
+                continue
+            if datetime.fromtimestamp(start_ts).date() == today:
+                if evt.get('lessonStatus') != 'Annulé':
+                    return True
+        return False
+    
+    def get_next_event_end(self, events):
+        """Get the end timestamp of the next upcoming event (or None if none)."""
+        now = datetime.now()
+        next_end = None
+        
+        for evt in events:
+            end_ts = evt.get('endDate', 0) / 1000
+            if end_ts <= 0:
+                continue
+            if datetime.fromtimestamp(end_ts) > now:
+                if next_end is None or end_ts < next_end:
+                    next_end = end_ts
+                    
+        return next_end
+        
     def extract_active_calls(self, events):
         """
         Analyzes the list of events and returns those that have an active attendance 

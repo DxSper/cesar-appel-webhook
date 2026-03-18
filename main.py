@@ -43,6 +43,14 @@ def main():
     run_parser.add_argument('--schedule-minute', type=int, default=0, help='Minute to send daily schedule')
     run_parser.add_argument('--check-interval', type=int, default=60, help='Seconds between checks')
     
+    # 'session' command (for cron)
+    session_parser = subparsers.add_parser('session', help='Run for one session then exit (for cron)')
+    session_parser.add_argument('--start-hour', type=int, default=9, help='Session start hour')
+    session_parser.add_argument('--start-minute', type=int, default=13, help='Session start minute')
+    session_parser.add_argument('--end-hour', type=int, default=13, help='Session end hour')
+    session_parser.add_argument('--end-minute', type=int, default=43, help='Session end minute')
+    session_parser.add_argument('--check-interval', type=int, default=30, help='Seconds between checks')
+    
     # 'listen' command
     listen_parser = subparsers.add_parser('listen', help='Aggressive 30s polling indefinitely')
     listen_parser.add_argument('--interval', type=int, default=30, help='Polling interval in seconds')
@@ -59,7 +67,7 @@ def main():
         logger.error("Missing CESAR_USERNAME or CESAR_PASSWORD in .env")
         sys.exit(1)
 
-    if args.command in ['run', 'listen', 'test'] and not WEBHOOK_URL:
+    if args.command in ['run', 'listen', 'test', 'session'] and not WEBHOOK_URL:
         logger.error("Missing DISCORD_WEBHOOK_URL in .env")
         sys.exit(1)
 
@@ -72,6 +80,18 @@ def main():
             afternoon_minute=args.afternoon_minute,
             schedule_hour=args.schedule_hour,
             schedule_minute=args.schedule_minute,
+            check_interval=args.check_interval
+        )
+    elif args.command == 'session':
+        if not WEBHOOK_URL:
+            logger.error("Missing DISCORD_WEBHOOK_URL in .env")
+            sys.exit(1)
+        bot = CesarAppelBot(USERNAME, PASSWORD, WEBHOOK_URL, ROLE_ID)
+        bot.run_session(
+            start_hour=args.start_hour,
+            start_minute=args.start_minute,
+            end_hour=args.end_hour,
+            end_minute=args.end_minute,
             check_interval=args.check_interval
         )
     elif args.command == 'listen':
