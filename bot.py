@@ -239,9 +239,15 @@ class CesarBot:
             
             embed = {
                 "title": "🔔 Appel détecté sur César!",
+                "url": BASE_URL,
                 "description": f"Une feuille d'émargement est disponible pour:\n**{event_info.get('description', 'Événement')}**",
                 "color": 15158332,  # Red color
                 "fields": [
+                    {
+                        "name": "Lien",
+                        "value": f"[Ouvrir César]({BASE_URL})",
+                        "inline": False
+                    },
                     {
                         "name": "Type",
                         "value": event_info.get('lesson_type', 'Inconnu'),
