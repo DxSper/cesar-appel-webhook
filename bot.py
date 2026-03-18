@@ -4,10 +4,10 @@ César Attendance Call Bot
 Monitors César school platform for attendance calls and sends Discord notifications.
 
 Usage:
-    python bot.py --webhook <discord_webhook_url> [--start-hour 9 --start-minute 14]
+    python bot.py --webhook <discord_webhook_url> [--start-hour 9 --start-minute 13]
 
 The bot:
-1. Starts checking at 9:14 AM for attendance calls
+1. Starts checking at 9:13 AM for attendance calls
 2. Sends Discord notification when attendance call is launched (signature icon appears)
 3. Sleeps until 13:43 to avoid resource usage during class
 4. Wakes up and checks again for afternoon call
@@ -46,7 +46,7 @@ LOGIN_URL = f'{BASE_URL}/connexion'
 # Credentials from environment variables
 USERNAME = os.getenv('CESAR_USERNAME', '')
 PASSWORD = os.getenv('CESAR_PASSWORD', '')
-DISCORD_ROLE_ID = os.getenv('DISCORD_ROLE_ID', '1424662356868337775')
+DISCORD_ROLE_ID = os.getenv('DISCORD_ROLE_ID', '1324662356868337775')
 
 
 class CesarBot:
@@ -288,13 +288,13 @@ class CesarBot:
             logger.error(f"Error sending Discord notification: {e}")
             return False
 
-    def run(self, start_hour=9, start_minute=14, afternoon_hour=13, afternoon_minute=43):
+    def run(self, start_hour=9, start_minute=13, afternoon_hour=13, afternoon_minute=43):
         """
         Main bot loop.
         
         Args:
             start_hour: Hour to start checking (default: 9)
-            start_minute: Minute to start checking (default: 14)
+            start_minute: Minute to start checking (default: 13)
             afternoon_hour: Hour to resume after sleep (default: 13)
             afternoon_minute: Minute to resume after sleep (default: 43)
         """
@@ -376,7 +376,7 @@ def main():
     parser = argparse.ArgumentParser(description='César attendance call bot')
     parser.add_argument('--webhook', required=True, help='Discord webhook URL')
     parser.add_argument('--start-hour', type=int, default=9, help='Hour to start checking (default: 9)')
-    parser.add_argument('--start-minute', type=int, default=14, help='Minute to start checking (default: 14)')
+    parser.add_argument('--start-minute', type=int, default=13, help='Minute to start checking (default: 13)')
     parser.add_argument('--afternoon-hour', type=int, default=13, help='Hour to resume after sleep (default: 13)')
     parser.add_argument('--afternoon-minute', type=int, default=43, help='Minute to resume after sleep (default: 43)')
     parser.add_argument('--check-interval', type=int, default=60, help='Check interval in seconds (default: 60)')
