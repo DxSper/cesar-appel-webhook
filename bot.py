@@ -3,14 +3,15 @@
 César Attendance Call Bot
 Monitors César school platform for attendance calls and sends Discord notifications.
 
-Usage:
-    python bot.py --webhook <discord_webhook_url> [--start-hour 9 --start-minute 13]
+Usage (cron mode - run once):
+    python bot.py --webhook <discord_webhook_url>
 
-The bot:
-1. Starts checking at 9:13 AM for attendance calls
-2. Sends Discord notification when attendance call is launched (signature icon appears)
-3. Sleeps until 13:43 to avoid resource usage during class
-4. Wakes up and checks again for afternoon call
+Usage (continuous mode - systemd):
+    python bot.py --webhook <discord_webhook_url> --continuous
+
+The bot checks for attendance calls and sends Discord notification when detected.
+- Default (cron): Runs once and exits. Use cron to schedule periodic checks.
+- --continuous: Runs continuously with internal scheduling (for systemd/service).
 """
 
 import requests
@@ -288,9 +289,28 @@ class CesarBot:
             logger.error(f"Error sending Discord notification: {e}")
             return False
 
-    def run(self, start_hour=9, start_minute=13, afternoon_hour=13, afternoon_minute=43):
+    def check_once(self):
+        """Run a single check and exit. For cron jobs."""
+        logger.info("Running single check...")
+        
+        if not self.login():
+            logger.error("Failed to login. Exiting.")
+            return False
+        
+        events = self.check_attendance_calls()
+        
+        for event in events:
+            if event['uuid'] not in self.notified_events:
+                if self.send_discord_notification(event):
+                    self.notified_events.add(event['uuid'])
+        
+        logger.info("Check complete.")
+        return True
+    
+    def run_continuous(self, start_hour=9, start_minute=13, afternoon_hour=13, afternoon_minute=43):
         """
-        Main bot loop.
+        Continuous monitoring mode (for systemd/service).
+        Keeps running and sleeping, checking periodically.
         
         Args:
             start_hour: Hour to start checking (default: 9)
@@ -298,9 +318,8 @@ class CesarBot:
             afternoon_hour: Hour to resume after sleep (default: 13)
             afternoon_minute: Minute to resume after sleep (default: 43)
         """
-        logger.info(f"Bot starting. Check interval: {self.check_interval}s")
+        logger.info(f"Bot starting in continuous mode.")
         
-        # Login first
         if not self.login():
             logger.error("Failed to login. Exiting.")
             return
@@ -346,20 +365,9 @@ class CesarBot:
                 time.sleep(self.check_interval)
                 
             else:
-                # Afternoon sleep phase
-                # Calculate wake-up time for next day
-                wake_hour = start_hour
-                wake_minute = start_minute
-                
-                if now.hour > afternoon_hour or (now.hour == afternoon_hour and now.minute >= afternoon_minute):
-                    # It's already afternoon sleep time, wake up tomorrow morning
-                    wake_time = now.replace(hour=wake_hour, minute=wake_minute, second=0, microsecond=0)
-                    wake_time += timedelta(days=1)
-                else:
-                    # Shouldn't happen, but handle it
-                    wake_time = now.replace(hour=wake_hour, minute=wake_minute, second=0, microsecond=0)
-                    if wake_time < now:
-                        wake_time += timedelta(days=1)
+                # Afternoon sleep phase - wait until next morning
+                wake_time = now.replace(hour=start_hour, minute=start_minute, second=0, microsecond=0)
+                wake_time += timedelta(days=1)
                 
                 wait_seconds = (wake_time - now).total_seconds()
                 logger.info(f"Sleeping for {wait_seconds:.0f}s until next morning")
@@ -368,18 +376,13 @@ class CesarBot:
                 sleep_start = datetime.now()
                 while (datetime.now() - sleep_start).total_seconds() < wait_seconds:
                     time.sleep(300)  # Sleep 5 minutes at a time
-                    # Check if we should wake up early (attendance call detected)
-                    # This is optional - could be disabled for even lighter resource usage
 
 
 def main():
     parser = argparse.ArgumentParser(description='César attendance call bot')
     parser.add_argument('--webhook', required=True, help='Discord webhook URL')
-    parser.add_argument('--start-hour', type=int, default=9, help='Hour to start checking (default: 9)')
-    parser.add_argument('--start-minute', type=int, default=13, help='Minute to start checking (default: 13)')
-    parser.add_argument('--afternoon-hour', type=int, default=13, help='Hour to resume after sleep (default: 13)')
-    parser.add_argument('--afternoon-minute', type=int, default=43, help='Minute to resume after sleep (default: 43)')
-    parser.add_argument('--check-interval', type=int, default=60, help='Check interval in seconds (default: 60)')
+    parser.add_argument('--continuous', action='store_true', help='Run continuously (for systemd). Default: run once and exit (for cron)')
+    parser.add_argument('--check-interval', type=int, default=60, help='Check interval in seconds (default: 60, only for continuous mode)')
     
     args = parser.parse_args()
     
@@ -388,12 +391,10 @@ def main():
         check_interval=args.check_interval
     )
     
-    bot.run(
-        start_hour=args.start_hour,
-        start_minute=args.start_minute,
-        afternoon_hour=args.afternoon_hour,
-        afternoon_minute=args.afternoon_minute
-    )
+    if args.continuous:
+        bot.run_continuous()
+    else:
+        bot.check_once()
 
 
 if __name__ == '__main__':

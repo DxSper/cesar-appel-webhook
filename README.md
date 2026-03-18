@@ -8,7 +8,7 @@ Un bot léger qui surveille l'application César pour détecter les appels de pr
 - ✅ Vous notifie sur Discord dès que la feuille d'émargement est ouverte
 - ✅ Vous notifie sur Discord uniquement si vous n'avez pas encore signé
 - ✅ Ne vous spam pas si vous avez déjà signé
-- ✅ Se réveille automatiquement pendant les heures de cours
+- ✅ **Léger** : utilise cron pour vérifier périodiquement (pas de processus permanent)
 
 ## Installation
 
@@ -47,24 +47,52 @@ DISCORD_ROLE_ID=1234567890123456789
 2. Faites un **clic droit** sur le rôle à mentionner
 3. Cliquez sur **"Copier l'ID"**
 
-## Lancement
+## Lancement (méthode recommandée : cron)
 
-### Mode surveillance continue (recommandé)
+### 1. Ajouter au crontab
 
 ```bash
-python3 listen_now.py
+crontab -e
 ```
 
-### Mode bot complet (avec scheduling)
+### 2. Ajouter ces lignes
 
-```bash
-python3 bot.py --webhook "$DISCORD_WEBHOOK_URL"
+```cron
+# Vérifier toutes les 5 minutes entre 9h et 13h (lundi-vendredi)
+*/5 9-12 * * 1-5 /home/USERNAME/cesar_ping/check_now.sh
+
+# Vérifier toutes les 5 minutes entre 13h et 18h (lundi-vendredi)
+*/5 13-17 * * 1-5 /home/USERNAME/cesar_ping/check_now.sh
 ```
 
-### Vérification rapide
+**⚠️ Important** : Remplacez `/home/USERNAME/cesar_ping` par le chemin où vous avez cloné le repo.
+
+### 3. Vérifier que ça marche
 
 ```bash
-python3 verify.py
+# Test manuel
+./check_now.sh
+
+# Voir les logs
+tail -f bot.log
+```
+
+## Alternative : Mode service systemd
+
+Si vous préférez un processus permanent, utilisez systemd :
+
+```bash
+# Copier et adapter la configuration
+cp cesar-bot.service.example /etc/systemd/system/cesar-bot.service
+
+# Éditer avec vos chemins
+sudo nano /etc/systemd/system/cesar-bot.service
+# Remplacez USERNAME par votre nom d'utilisateur
+# Remplacez /home/USERNAME/cesar_ping par le chemin du repo
+
+sudo systemctl daemon-reload
+sudo systemctl enable cesar-bot
+sudo systemctl start cesar-bot
 ```
 
 ## Comment ça fonctionne
@@ -131,34 +159,27 @@ Signatures: 11/44 étudiants ont signé
 ## Structure du projet
 
 ```
-├── bot.py              # Bot principal avec scheduling
-├── listen_now.py       # Script de surveillance continue
+├── bot.py              # Bot principal
+├── check_now.sh       # Script pour cron (vérifie une fois et quitte)
+├── listen_now.py      # Script de surveillance continue (alternative)
 ├── verify.py          # Vérification rapide
 ├── test_complet.py    # Test détaillé
 ├── test_bot.py        # Test de détection
-├── run_bot.sh         # Script de lancement
-├── cesar-bot.service.example  # Template systemd (à adapter)
+├── run_bot.sh         # Script pour mode systemd (mode continu)
+├── cesar-bot.service.example  # Template systemd
 ├── .env.example       # Template configuration
 ├── requirements.txt   # Dépendances Python
 └── README.md          # Ce fichier
 ```
 
-## Installation du service (optionnel)
-
-Pour faire tourner le bot en arrière-plan avec systemd :
+## Vérification rapide
 
 ```bash
-# Copier et adapter la configuration
-cp cesar-bot.service.example /etc/systemd/system/cesar-bot.service
+# Test unique
+python3 bot.py --webhook "$DISCORD_WEBHOOK_URL"
 
-# Éditer avec vos chemins
-sudo nano /etc/systemd/system/cesar-bot.service
-# Remplacer USERNAME par votre nom d'utilisateur
-# Remplacer /home/USERNAME/cesar_ping par le chemin du repo
-
-sudo systemctl daemon-reload
-sudo systemctl enable cesar-bot
-sudo systemctl start cesar-bot
+# Voir l'état actuel
+python3 verify.py
 ```
 
 ## Dépannage
@@ -170,6 +191,11 @@ sudo systemctl start cesar-bot
 
 ### Erreur de connexion ?
 - Vérifiez vos identifiants César dans `.env`
+
+### Cron ne marche pas ?
+- Vérifiez que le script est exécutable : `chmod +x check_now.sh`
+- Vérifiez les logs cron : `grep CRON /var/log/syslog` (ou `journalctl -u cron`)
+- Testez manuellement : `./check_now.sh`
 
 ## Licence
 
