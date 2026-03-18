@@ -2,7 +2,7 @@
 # Start the César attendance bot in the background
 # Assurez-vous d'avoir configuré le fichier .env avant de lancer
 
-cd /home/baptiste/cesar_ping
+cd "$(dirname "$0")"
 
 # Load environment variables
 if [ -f .env ]; then
@@ -13,7 +13,7 @@ fi
 python3 bot.py \
     --webhook "$DISCORD_WEBHOOK_URL" \
     --start-hour 9 \
-    --start-minute 14 \
+    --start-minute 13 \
     --afternoon-hour 13 \
     --afternoon-minute 43 \
     --check-interval 60
