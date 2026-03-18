@@ -3,6 +3,9 @@
 .env.local
 .env.production
 
+# Scripts (contain credentials/APIs)
+scripts/
+
 # Logs
 *.log
 bot.log
