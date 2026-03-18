@@ -44,7 +44,7 @@ BASE_URL = 'https://cesar.emineo-informatique.fr'
 LOGIN_URL = f'{BASE_URL}/connexion'
 
 # Credentials from environment variables
-USERNAME = os.getenv('CESAR_USERNAME', 'etubroux')
+USERNAME = os.getenv('CESAR_USERNAME', '')
 PASSWORD = os.getenv('CESAR_PASSWORD', '')
 DISCORD_ROLE_ID = os.getenv('DISCORD_ROLE_ID', '1424662356868337775')
 

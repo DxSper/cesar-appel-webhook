@@ -62,9 +62,9 @@ def main():
             print("   ✅ Connexion réussie")
         else:
             print("   ⚠️  Vérification alternative...")
-            # Check if username appears in page
-            if 'etubroux' in r.text.lower() or 'ROUX' in r.text:
-                print("   ✅ Connexion réussie (username trouvé)")
+            # Check for attendance calendar data (confirms login)
+            if 'data-tui-calendar' in r.text or 'studentRegistration' in r.text:
+                print("   ✅ Connexion réussie (données calendrier trouvées)")
             else:
                 print("   ❌ Échec de connexion - aucun indicateur trouvé")
                 print(f"   Debug: Final URL: {r.url}, Status: {r.status_code}")
