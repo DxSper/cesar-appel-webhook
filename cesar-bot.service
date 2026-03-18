@@ -1,0 +1,14 @@
+[Unit]
+Description=César Attendance Call Bot
+After=network.target
+
+[Service]
+Type=simple
+User=baptiste
+WorkingDirectory=/home/baptiste/cesar_ping
+ExecStart=/home/baptiste/cesar_ping/run_bot.sh
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
