@@ -6,9 +6,9 @@ After=network.target
 Type=simple
 # Remplacez USERNAME par votre nom d'utilisateur
 User=USERNAME
-# Remplacez /home/USERNAME/cesar_ping par le chemin où vous avez cloné le repo
-WorkingDirectory=/home/USERNAME/cesar_ping
-ExecStart=/home/USERNAME/cesar_ping/run_bot.sh
+# Remplacez /home/USERNAME/cesar-appel-webhook par le chemin où vous avez cloné le repo
+WorkingDirectory=/home/USERNAME/cesar-appel-webhook
+ExecStart=/home/USERNAME/cesar-appel-webhook/run_bot.sh
 Restart=always
 RestartSec=60
 
