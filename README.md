@@ -137,7 +137,7 @@ Signatures: 11/44 étudiants ont signé
 ├── test_complet.py    # Test détaillé
 ├── test_bot.py        # Test de détection
 ├── run_bot.sh         # Script de lancement
-├── cesar-bot.service  # Service systemd (optionnel)
+├── cesar-bot.service.example  # Template systemd (à adapter)
 ├── .env.example       # Template configuration
 ├── requirements.txt   # Dépendances Python
 └── README.md          # Ce fichier
@@ -148,7 +148,14 @@ Signatures: 11/44 étudiants ont signé
 Pour faire tourner le bot en arrière-plan avec systemd :
 
 ```bash
-sudo cp cesar-bot.service /etc/systemd/system/
+# Copier et adapter la configuration
+cp cesar-bot.service.example /etc/systemd/system/cesar-bot.service
+
+# Éditer avec vos chemins
+sudo nano /etc/systemd/system/cesar-bot.service
+# Remplacer USERNAME par votre nom d'utilisateur
+# Remplacer /home/USERNAME/cesar_ping par le chemin du repo
+
 sudo systemctl daemon-reload
 sudo systemctl enable cesar-bot
 sudo systemctl start cesar-bot

@@ -1,0 +1,16 @@
+[Unit]
+Description=César Attendance Call Bot
+After=network.target
+
+[Service]
+Type=simple
+# Remplacez USERNAME par votre nom d'utilisateur
+User=USERNAME
+# Remplacez /home/USERNAME/cesar_ping par le chemin où vous avez cloné le repo
+WorkingDirectory=/home/USERNAME/cesar_ping
+ExecStart=/home/USERNAME/cesar_ping/run_bot.sh
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
