@@ -23,46 +23,50 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Credentials from environment variables
+# === Credentials (required) ===
 USERNAME = os.getenv('CESAR_USERNAME', '')
 PASSWORD = os.getenv('CESAR_PASSWORD', '')
 WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', '')
 ROLE_ID = os.getenv('DISCORD_ROLE_ID', '1324662356868337775')
 
+# === Scheduling (from .env with defaults) ===
+BOT_START_HOUR = int(os.getenv('BOT_START_HOUR', '9'))
+BOT_START_MINUTE = int(os.getenv('BOT_START_MINUTE', '13'))
+BOT_END_HOUR = int(os.getenv('BOT_END_HOUR', '13'))
+BOT_END_MINUTE = int(os.getenv('BOT_END_MINUTE', '43'))
+BOT_AFTERNOON_START_HOUR = int(os.getenv('BOT_AFTERNOON_START_HOUR', '13'))
+BOT_AFTERNOON_START_MINUTE = int(os.getenv('BOT_AFTERNOON_START_MINUTE', '43'))
+BOT_AFTERNOON_END_HOUR = int(os.getenv('BOT_AFTERNOON_END_HOUR', '17'))
+BOT_AFTERNOON_END_MINUTE = int(os.getenv('BOT_AFTERNOON_END_MINUTE', '15'))
+BOT_CHECK_INTERVAL = int(os.getenv('BOT_CHECK_INTERVAL', '30'))
+SCHEDULE_HOUR = int(os.getenv('SCHEDULE_HOUR', '8'))
+SCHEDULE_MINUTE = int(os.getenv('SCHEDULE_MINUTE', '0'))
+
+
 def main():
     parser = argparse.ArgumentParser(description='César Attendance Bot CLI')
     subparsers = parser.add_subparsers(dest='command', help='Commands')
 
-    # 'run' command
-    run_parser = subparsers.add_parser('run', help='Run the long-term daemon (morning/afternoon loops, daily schedule)')
-    run_parser.add_argument('--start-hour', type=int, default=9, help='Morning start hour')
-    run_parser.add_argument('--start-minute', type=int, default=13, help='Morning start minute')
-    run_parser.add_argument('--afternoon-hour', type=int, default=13, help='Afternoon resume hour')
-    run_parser.add_argument('--afternoon-minute', type=int, default=43, help='Afternoon resume minute')
-    run_parser.add_argument('--schedule-hour', type=int, default=8, help='Hour to send daily schedule')
-    run_parser.add_argument('--schedule-minute', type=int, default=0, help='Minute to send daily schedule')
-    run_parser.add_argument('--check-interval', type=int, default=60, help='Seconds between checks')
+    # 'run' command (daemon)
+    subparsers.add_parser('run', help='Run the long-term daemon')
     
     # 'session' command (for cron)
     session_parser = subparsers.add_parser('session', help='Run for one session then exit (for cron)')
-    session_parser.add_argument('--start-hour', type=int, default=9, help='Session start hour')
-    session_parser.add_argument('--start-minute', type=int, default=13, help='Session start minute')
-    session_parser.add_argument('--end-hour', type=int, default=13, help='Session end hour')
-    session_parser.add_argument('--end-minute', type=int, default=43, help='Session end minute')
-    session_parser.add_argument('--check-interval', type=int, default=30, help='Seconds between checks')
-    
+    session_parser.add_argument('type', nargs='?', choices=['morning', 'afternoon'], default='morning',
+                               help='Session type: morning or afternoon (default: morning)')
+
     # 'listen' command
-    listen_parser = subparsers.add_parser('listen', help='Aggressive 30s polling indefinitely')
-    listen_parser.add_argument('--interval', type=int, default=30, help='Polling interval in seconds')
+    subparsers.add_parser('listen', help='Aggressive continuous polling')
 
     # 'verify' command
-    subparsers.add_parser('verify', help='Check status and active calls without sending to Discord')
+    subparsers.add_parser('verify', help='Check status without sending notification')
 
     # 'test' command
-    subparsers.add_parser('test', help='Do a full check and send a Discord test if call active')
+    subparsers.add_parser('test', help='Full check with Discord notification if call active')
 
     args = parser.parse_args()
 
+    # Validate required credentials
     if not USERNAME or not PASSWORD:
         logger.error("Missing CESAR_USERNAME or CESAR_PASSWORD in .env")
         sys.exit(1)
@@ -71,32 +75,37 @@ def main():
         logger.error("Missing DISCORD_WEBHOOK_URL in .env")
         sys.exit(1)
 
+    bot = CesarAppelBot(USERNAME, PASSWORD, WEBHOOK_URL, ROLE_ID)
+
     if args.command == 'run':
-        bot = CesarAppelBot(USERNAME, PASSWORD, WEBHOOK_URL, ROLE_ID)
         bot.run_daemon(
-            start_hour=args.start_hour,
-            start_minute=args.start_minute,
-            afternoon_hour=args.afternoon_hour,
-            afternoon_minute=args.afternoon_minute,
-            schedule_hour=args.schedule_hour,
-            schedule_minute=args.schedule_minute,
-            check_interval=args.check_interval
+            start_hour=BOT_START_HOUR,
+            start_minute=BOT_START_MINUTE,
+            afternoon_hour=BOT_AFTERNOON_START_HOUR,
+            afternoon_minute=BOT_AFTERNOON_START_MINUTE,
+            schedule_hour=SCHEDULE_HOUR,
+            schedule_minute=SCHEDULE_MINUTE,
+            check_interval=BOT_CHECK_INTERVAL
         )
     elif args.command == 'session':
-        if not WEBHOOK_URL:
-            logger.error("Missing DISCORD_WEBHOOK_URL in .env")
-            sys.exit(1)
-        bot = CesarAppelBot(USERNAME, PASSWORD, WEBHOOK_URL, ROLE_ID)
-        bot.run_session(
-            start_hour=args.start_hour,
-            start_minute=args.start_minute,
-            end_hour=args.end_hour,
-            end_minute=args.end_minute,
-            check_interval=args.check_interval
-        )
+        if args.type == 'morning':
+            bot.run_session(
+                start_hour=BOT_START_HOUR,
+                start_minute=BOT_START_MINUTE,
+                end_hour=BOT_END_HOUR,
+                end_minute=BOT_END_MINUTE,
+                check_interval=BOT_CHECK_INTERVAL
+            )
+        else:  # afternoon
+            bot.run_session(
+                start_hour=BOT_AFTERNOON_START_HOUR,
+                start_minute=BOT_AFTERNOON_START_MINUTE,
+                end_hour=BOT_AFTERNOON_END_HOUR,
+                end_minute=BOT_AFTERNOON_END_MINUTE,
+                check_interval=BOT_CHECK_INTERVAL
+            )
     elif args.command == 'listen':
-        bot = CesarAppelBot(USERNAME, PASSWORD, WEBHOOK_URL, ROLE_ID)
-        bot.run_listener(check_interval=args.interval)
+        bot.run_listener(check_interval=BOT_CHECK_INTERVAL)
     elif args.command == 'verify':
         success = run_verify(USERNAME, PASSWORD)
         sys.exit(0 if success else 1)
@@ -105,6 +114,7 @@ def main():
         sys.exit(0 if success else 1)
     else:
         parser.print_help()
+
 
 if __name__ == '__main__':
     main()

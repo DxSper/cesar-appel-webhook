@@ -1,8 +1,7 @@
 #!/bin/bash
 # Script pour cron - lance une session du bot puis quitte
+# Les horaires sont définis dans .env (BOT_START_HOUR, BOT_START_MINUTE, etc.)
 # Usage: ./check_now.sh [morning|afternoon]
-#   morning  = 9:13 - 13:43
-#   afternoon = 13:43 - 17:15
 
 cd "$(dirname "$0")"
 
@@ -15,22 +14,12 @@ SESSION=${1:-morning}
 
 case $SESSION in
     morning)
-        echo "Starting morning session (9:13 - 13:43)"
-        python3 main.py session \
-            --start-hour 9 \
-            --start-minute 13 \
-            --end-hour 13 \
-            --end-minute 43 \
-            --check-interval 30
+        echo "Starting morning session (${BOT_START_HOUR:-9}:${BOT_START_MINUTE:-13} - ${BOT_END_HOUR:-13}:${BOT_END_MINUTE:-43})"
+        python3 main.py session morning
         ;;
     afternoon)
-        echo "Starting afternoon session (13:43 - 17:15)"
-        python3 main.py session \
-            --start-hour 13 \
-            --start-minute 43 \
-            --end-hour 17 \
-            --end-minute 15 \
-            --check-interval 30
+        echo "Starting afternoon session (${BOT_AFTERNOON_START_HOUR:-13}:${BOT_AFTERNOON_START_MINUTE:-43} - ${BOT_AFTERNOON_END_HOUR:-17}:${BOT_AFTERNOON_END_MINUTE:-15})"
+        python3 main.py session afternoon
         ;;
     *)
         echo "Usage: $0 [morning|afternoon]"
