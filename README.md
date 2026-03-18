@@ -4,10 +4,10 @@ Un bot léger qui surveille l'application César pour détecter les appels de pr
 
 ## Fonctionnalités
 
-- ✅ Détecte automatiquement quand un appel est lancé (quand au moins un étudiant a signé)
+- ✅ Détecte automatiquement quand un appel est lancé (quand signingOff=true)
+- ✅ Vous notifie sur Discord dès que la feuille d'émargement est ouverte
 - ✅ Vous notifie sur Discord uniquement si vous n'avez pas encore signé
 - ✅ Ne vous spam pas si vous avez déjà signé
-- ✅ Ne vous notifie pas si l'appel n'a pas encore commencé
 - ✅ Se réveille automatiquement pendant les heures de cours
 
 ## Installation
@@ -71,24 +71,39 @@ python3 verify.py
 
 ### Logique de détection des signatures
 
-Le bot envoie une notification Discord **uniquement** quand toutes ces conditions sont remplies :
+Le bot envoie une notification Discord quand :
 
 1. ✅ Une feuille d'émargement existe pour l'événement
-2. ✅ **Au moins un étudiant a signé** (l'appel est réellement lancé)
-3. ✅ Vous n'avez pas encore signé (votre signature est null ou signed=false)
-4. ✅ L'événement n'a pas déjà été notifié
+2. ✅ Vous n'avez pas encore signé (votre signature est null ou signed=false)
+3. ✅ Soit l'appel est préparé (`signingOff=true`, signatures en attente), soit au moins un étudiant a signé
+
+Le bot **ne vous notifie pas** si vous avez déjà signé (`signed=true`).
 
 ### États possibles
 
-| État | Feuille | Étudiants signés | Votre signature | Action |
-|------|---------|------------------|-----------------|--------|
-| Appel pas encore lancé | Existe | 0 | null | ❌ Ne rien faire |
-| **Appel actif, pas signé** | Existe | > 0 | null | ✅ **Notifier !** |
-| **Appel actif, pas signé** | Existe | > 0 | signed=false | ✅ **Notifier !** |
-| Déjà signé | Existe | > 0 | signed=true | ❌ Ne rien faire |
+| État | Feuille | signingOff | Étudiants signés | Votre signature | Action |
+|------|---------|------------|------------------|-----------------|--------|
+| Appel préparé | Existe | true | 0 | null | ✅ **Notifier !** |
+| Appel actif | Existe | true | > 0 | null | ✅ **Notifier !** |
+| Appel actif, pas signé | Existe | true | > 0 | signed=false | ✅ **Notifier !** |
+| Déjà signé | Existe | true | > 0 | signed=true | ❌ Ne rien faire |
 
 ### Exemple concret
 
+**Cas 1 : Appel préparé (personne n'a encore signé)**
+```
+Événement: Campus SDV
+- Heure: 09:15 - 12:45
+- Étudiants: 44
+- Signatures: 0/44
+- signingOff: true
+
+→ Votre état: signature = null
+→ Appel préparé, en attente de signatures
+→ ✅ Le bot vous notifie sur Discord
+```
+
+**Cas 2 : Appel actif (des étudiants ont signé)**
 ```
 Événement: Campus SDV
 - Heure: 09:15 - 12:45
@@ -96,7 +111,6 @@ Le bot envoie une notification Discord **uniquement** quand toutes ces condition
 - Signatures: 11/44
 
 → Votre état: signature = null (pas encore signé)
-→ 11 étudiants ont signé → L'appel est lancé !
 → ✅ Le bot vous notifie sur Discord
 ```
 
