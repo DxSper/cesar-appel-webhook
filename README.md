@@ -2,6 +2,14 @@
 
 Un bot léger qui surveille l'application César pour détecter les appels de présence et vous notifier via Discord avec mention de rôle.
 
+## Fonctionnalités
+
+- ✅ Détecte automatiquement quand un appel est lancé (quand au moins un étudiant a signé)
+- ✅ Vous notifie sur Discord uniquement si vous n'avez pas encore signé
+- ✅ Ne vous spam pas si vous avez déjà signé
+- ✅ Ne vous notifie pas si l'appel n'a pas encore commencé
+- ✅ Se réveille automatiquement pendant les heures de cours
+
 ## Installation
 
 ```bash
@@ -41,7 +49,7 @@ DISCORD_ROLE_ID=1234567890123456789
 
 ## Lancement
 
-### Mode surveillance continue (recommandé pour l'après-midi)
+### Mode surveillance continue (recommandé)
 
 ```bash
 python3 listen_now.py
@@ -59,12 +67,38 @@ python3 bot.py --webhook "$DISCORD_WEBHOOK_URL"
 python3 verify.py
 ```
 
-## Fonctionnement
+## Comment ça fonctionne
 
-1. **Connexion** : Se connecte automatiquement à César avec vos identifiants
-2. **Surveillance** : Vérifie toutes les 30 secondes si un appel est lancé
-3. **Détection** : Détecte quand au moins un étudiant a signé et que vous n'avez pas encore signé
-4. **Notification** : Envoie un message Discord avec mention du rôle
+### Logique de détection des signatures
+
+Le bot envoie une notification Discord **uniquement** quand toutes ces conditions sont remplies :
+
+1. ✅ Une feuille d'émargement existe pour l'événement
+2. ✅ **Au moins un étudiant a signé** (l'appel est réellement lancé)
+3. ✅ Vous n'avez pas encore signé (votre signature est null ou signed=false)
+4. ✅ L'événement n'a pas déjà été notifié
+
+### États possibles
+
+| État | Feuille | Étudiants signés | Votre signature | Action |
+|------|---------|------------------|-----------------|--------|
+| Appel pas encore lancé | Existe | 0 | null | ❌ Ne rien faire |
+| **Appel actif, pas signé** | Existe | > 0 | null | ✅ **Notifier !** |
+| **Appel actif, pas signé** | Existe | > 0 | signed=false | ✅ **Notifier !** |
+| Déjà signé | Existe | > 0 | signed=true | ❌ Ne rien faire |
+
+### Exemple concret
+
+```
+Événement: Campus SDV
+- Heure: 09:15 - 12:45
+- Étudiants: 44
+- Signatures: 11/44
+
+→ Votre état: signature = null (pas encore signé)
+→ 11 étudiants ont signé → L'appel est lancé !
+→ ✅ Le bot vous notifie sur Discord
+```
 
 ## Exemple de notification Discord
 
@@ -77,6 +111,7 @@ Une feuille d'émargement est disponible pour:
 
 Type: Séance de cours | Heure: 13:45
 Enseignant(s): Christophe HERROU
+Signatures: 11/44 étudiants ont signé
 ```
 
 ## Structure du projet
@@ -86,11 +121,34 @@ Enseignant(s): Christophe HERROU
 ├── listen_now.py       # Script de surveillance continue
 ├── verify.py          # Vérification rapide
 ├── test_complet.py    # Test détaillé
+├── test_bot.py        # Test de détection
 ├── run_bot.sh         # Script de lancement
+├── cesar-bot.service  # Service systemd (optionnel)
 ├── .env.example       # Template configuration
 ├── requirements.txt   # Dépendances Python
 └── README.md          # Ce fichier
 ```
+
+## Installation du service (optionnel)
+
+Pour faire tourner le bot en arrière-plan avec systemd :
+
+```bash
+sudo cp cesar-bot.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable cesar-bot
+sudo systemctl start cesar-bot
+```
+
+## Dépannage
+
+### Pas de notification ?
+- Vérifiez les logs : `tail -f bot.log`
+- Vérifiez votre webhook Discord
+- Lancez `python3 verify.py` pour voir l'état actuel
+
+### Erreur de connexion ?
+- Vérifiez vos identifiants César dans `.env`
 
 ## Licence
 
