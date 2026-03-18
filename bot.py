@@ -170,35 +170,32 @@ class CesarBot:
                                 # 3. attendanceSheet exists + signature exists + signed=true = "I've already signed"
                                 
                                 if signature is None:
-                                    # My signature is null - I haven't signed yet
-                                    # But we need to check if OTHER students have signed (call is active)
+                                    # Ma signature est null - je n'ai pas encore signé
+                                    # signingOff=true indique que l'appel est actif (feuille fermée pour signature)
                                     
-                                    # Count signatures in the attendance sheet
+                                    # Compter les signatures
                                     total_students = len(att_sheet.get('attendanceSheetLines', []))
                                     signed_students = sum(1 for line in att_sheet.get('attendanceSheetLines', []) 
                                                          if line.get('signature') and line.get('signature', {}).get('signed') is True)
                                     
-                                    # If other students have signed, the call is active
-                                    if signed_students > 0:
-                                        # Call is active, I haven't signed yet
+                                    # Vérifier attendanceWithoutSignature
+                                    att_without_sig = my_line.get('attendanceWithoutSignature', False)
+                                    if att_without_sig:
+                                        logger.debug(f"Event {evt.get('description')}: Attendance without signature - skip")
+                                    else:
+                                        # L'appel est actif (signingOff=true) et je dois signer
+                                        # On notifie que l'appel soit lancé (0 ou plusieurs signatures)
                                         logger.info(f"Event {evt.get('description')}: Call active ({signed_students}/{total_students} signed)")
                                         
-                                        # Also check attendanceWithoutSignature
-                                        att_without_sig = my_line.get('attendanceWithoutSignature', False)
-                                        if att_without_sig:
-                                            logger.info(f"Event {evt.get('description')}: Attendance without signature - skip notification")
-                                        else:
-                                            event_info = {
-                                                'uuid': evt_uuid,
-                                                'description': evt.get('description', 'Unknown'),
-                                                'lesson_type': evt.get('lessonType', ''),
-                                                'start_date': evt.get('startDate', 0),
-                                                'teachers': evt.get('teachers', [])
-                                            }
-                                            events_to_notify.append(event_info)
-                                            logger.info(f"Attendance call detected: {event_info['description']}")
-                                    else:
-                                        logger.debug(f"Event {evt.get('description')}: No one has signed yet, waiting for call")
+                                        event_info = {
+                                            'uuid': evt_uuid,
+                                            'description': evt.get('description', 'Unknown'),
+                                            'lesson_type': evt.get('lessonType', ''),
+                                            'start_date': evt.get('startDate', 0),
+                                            'teachers': evt.get('teachers', [])
+                                        }
+                                        events_to_notify.append(event_info)
+                                        logger.info(f"Attendance call detected: {event_info['description']}")
                                     continue
                                 elif signature.get('signed') is False:
                                     # Signature exists but not signed yet - call is active!
