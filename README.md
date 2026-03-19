@@ -7,7 +7,7 @@ Un bot léger qui surveille l'application César pour détecter les appels de pr
 - ✅ Détecte automatiquement quand un appel est lancé
 - ✅ Vous notifie sur Discord
 - ✅ Ne vous spam pas si vous avez déjà signé
-- ✅ **Léger** : Mode cron disponible (pas de processus permanent)
+- ✅ **Léger** : Mode cron (pas de processus permanent)
 - ✅ Tout configurable via `.env`
 
 ## Installation
@@ -63,32 +63,37 @@ chmod +x check_now.sh
 Ajouter au crontab (`crontab -e`) :
 
 ```cron
-# Session matin
+# Envoi du planning (8h00, lun-ven)
+0 8 * * 1-5 /home/USER/cesar-appel-webhook/check_now.sh schedule
+
+# Session matin - vérification appel (9h13, lun-ven)
 13 9 * * 1-5 /home/USER/cesar-appel-webhook/check_now.sh morning
 
-# Session après-midi
+# Session après-midi - vérification appel (13h43, lun-ven)
 43 13 * * 1-5 /home/USER/cesar-appel-webhook/check_now.sh afternoon
 ```
+
+**Note :** `1-5` = lundi à vendredi (le bot ne se lance pas le weekend)
 
 ### Commandes CLI
 
 ```bash
-python3 main.py session morning   # Session matin (via cron)
-python3 main.py session afternoon # Session après-midi (via cron)
-python3 main.py run              # Daemon permanent avec planning à 8h
-python3 main.py listen           # Écoute continue (30s)
+python3 main.py session schedule  # Envoi planning puis quitte
+python3 main.py session morning   # Check appel matin puis quitte
+python3 main.py session afternoon # Check appel après-midi puis quitte
+python3 main.py listen           # Écoute continue (pour tester)
 python3 main.py verify           # Vérifier l'état
 python3 main.py test             # Test avec notification
 ```
+
+**Note :** Pour une utilisation normale, utilisez `check_now.sh` avec cron (voir ci-dessus).
 
 ## Structure
 
 ```
 ├── main.py
 ├── check_now.sh          # Pour cron
-├── run_bot.sh           # Pour daemon
 ├── .env.example         # Template config
-├── cesar-bot.service.example
 └── src/
     ├── cesar_client.py
     ├── discord_notifier.py

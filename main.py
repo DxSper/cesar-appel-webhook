@@ -47,16 +47,13 @@ def main():
     parser = argparse.ArgumentParser(description='César Attendance Bot CLI')
     subparsers = parser.add_subparsers(dest='command', help='Commands')
 
-    # 'run' command (daemon)
-    subparsers.add_parser('run', help='Run the long-term daemon')
-    
     # 'session' command (for cron)
     session_parser = subparsers.add_parser('session', help='Run for one session then exit (for cron)')
-    session_parser.add_argument('type', nargs='?', choices=['morning', 'afternoon'], default='morning',
-                               help='Session type: morning or afternoon (default: morning)')
-
-    # 'listen' command
-    subparsers.add_parser('listen', help='Aggressive continuous polling')
+    session_parser.add_argument('type', nargs='?', choices=['morning', 'afternoon', 'schedule'], default='morning',
+                               help='Session type: morning, afternoon, or schedule (default: morning)')
+    
+    # 'listen' command (for testing)
+    subparsers.add_parser('listen', help='Aggressive continuous polling (for testing)')
 
     # 'verify' command
     subparsers.add_parser('verify', help='Check status without sending notification')
@@ -71,23 +68,13 @@ def main():
         logger.error("Missing CESAR_USERNAME or CESAR_PASSWORD in .env")
         sys.exit(1)
 
-    if args.command in ['run', 'listen', 'test', 'session'] and not WEBHOOK_URL:
+    if args.command in ['listen', 'test', 'session'] and not WEBHOOK_URL:
         logger.error("Missing DISCORD_WEBHOOK_URL in .env")
         sys.exit(1)
 
     bot = CesarAppelBot(USERNAME, PASSWORD, WEBHOOK_URL, ROLE_ID)
 
-    if args.command == 'run':
-        bot.run_daemon(
-            start_hour=BOT_START_HOUR,
-            start_minute=BOT_START_MINUTE,
-            afternoon_hour=BOT_AFTERNOON_START_HOUR,
-            afternoon_minute=BOT_AFTERNOON_START_MINUTE,
-            schedule_hour=SCHEDULE_HOUR,
-            schedule_minute=SCHEDULE_MINUTE,
-            check_interval=BOT_CHECK_INTERVAL
-        )
-    elif args.command == 'session':
+    if args.command == 'session':
         if args.type == 'morning':
             bot.run_session(
                 start_hour=BOT_START_HOUR,
@@ -96,13 +83,22 @@ def main():
                 end_minute=BOT_END_MINUTE,
                 check_interval=BOT_CHECK_INTERVAL
             )
-        else:  # afternoon
+        elif args.type == 'afternoon':
             bot.run_session(
                 start_hour=BOT_AFTERNOON_START_HOUR,
                 start_minute=BOT_AFTERNOON_START_MINUTE,
                 end_hour=BOT_AFTERNOON_END_HOUR,
                 end_minute=BOT_AFTERNOON_END_MINUTE,
                 check_interval=BOT_CHECK_INTERVAL
+            )
+        elif args.type == 'schedule':
+            bot.run_session(
+                start_hour=SCHEDULE_HOUR,
+                start_minute=SCHEDULE_MINUTE,
+                end_hour=SCHEDULE_HOUR,
+                end_minute=SCHEDULE_MINUTE,
+                check_interval=1,
+                send_schedule=True
             )
     elif args.command == 'listen':
         bot.run_listener(check_interval=BOT_CHECK_INTERVAL)
