@@ -192,9 +192,8 @@ class CesarClient:
                 
                 # Logic to detect if a call is active and needs our attention
                 if sig is None and not att_without_sig:
-                    if signed_count > 0:
-                        # Call active (others have signed) but we haven't
-                        active_calls.append(self._format_call_info(evt, lines, signed_count))
+                    # Attendance sheet exists → call is active, even with 0 signatures
+                    active_calls.append(self._format_call_info(evt, lines, signed_count))
                 elif sig is not None and sig.get('signed') is False:
                     # Signature block requested but not signed yet
                     active_calls.append(self._format_call_info(evt, lines, signed_count))
