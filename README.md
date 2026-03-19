@@ -53,7 +53,7 @@ INSTAGRAM_TOTP_SECRET=votre_secret_totp
 **Pour trouver le Thread ID** : Ouvrez la conversation Instagram dans le navigateur > Regardez l'URL :
 `https://www.instagram.com/direct/t/XXXXXXXXX/` → le nombre = Thread ID
 
-**Pour le TOTP Secret** : Quand vous configurez l'authentification 2FA sur Instagram, sauvegardez le "secret" (format: `***REMOVED***`). Le bot générera automatiquement les codes.
+**Pour le TOTP Secret** : Quand vous configurez l'authentification 2FA sur Instagram, sauvegardez le "secret" (ex: `ABCDEFGHIJKLMNOP`). Le bot générera automatiquement les codes.
 
 ### Horaires (optionnel)
 
