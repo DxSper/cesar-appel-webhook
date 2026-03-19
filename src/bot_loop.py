@@ -7,12 +7,83 @@ from .discord_notifier import DiscordNotifier
 
 logger = logging.getLogger(__name__)
 
+
+class MultiNotifier:
+    """Wrapper to send notifications to multiple channels."""
+    
+    def __init__(self):
+        self.notifiers = []
+    
+    def add(self, notifier):
+        """Add a notifier."""
+        if notifier:
+            self.notifiers.append(notifier)
+            logger.info(f"Added notifier: {notifier.__class__.__name__}")
+    
+    def send_attendance_alert(self, call_info):
+        """Send attendance alert to all notifiers."""
+        if not self.notifiers:
+            logger.warning("No notifiers configured!")
+            return False
+        
+        results = []
+        for notifier in self.notifiers:
+            try:
+                result = notifier.send_attendance_alert(call_info)
+                results.append((notifier.__class__.__name__, result))
+                if result:
+                    logger.info(f"Alert sent via {notifier.__class__.__name__}")
+            except Exception as e:
+                logger.error(f"Error sending alert via {notifier.__class__.__name__}: {e}")
+                results.append((notifier.__class__.__name__, False))
+        
+        # Return True if at least one succeeded
+        return any(r for _, r in results)
+    
+    def send_schedule_notification(self, lessons):
+        """Send schedule notification to all notifiers."""
+        if not self.notifiers:
+            logger.warning("No notifiers configured!")
+            return False
+        
+        results = []
+        for notifier in self.notifiers:
+            try:
+                result = notifier.send_schedule_notification(lessons)
+                results.append((notifier.__class__.__name__, result))
+                if result:
+                    logger.info(f"Schedule sent via {notifier.__class__.__name__}")
+            except Exception as e:
+                logger.error(f"Error sending schedule via {notifier.__class__.__name__}: {e}")
+                results.append((notifier.__class__.__name__, False))
+        
+        # Return True if at least one succeeded
+        return any(r for _, r in results)
+
+
 class CesarAppelBot:
     """Manages the session-based application logic."""
     
-    def __init__(self, username, password, webhook_url, role_id):
+    def __init__(self, username, password, webhook_url, role_id, instagram_username=None, 
+                 instagram_password=None, instagram_thread_id=None):
         self.client = CesarClient(username, password)
-        self.notifier = DiscordNotifier(webhook_url, role_id)
+        
+        # Multi-notifier setup
+        self.notifier = MultiNotifier()
+        
+        # Discord (always enabled if webhook provided)
+        if webhook_url:
+            self.notifier.add(DiscordNotifier(webhook_url, role_id))
+        
+        # Instagram (optional)
+        if instagram_username and instagram_password and instagram_thread_id:
+            from .instagram_notifier import InstagramNotifier
+            self.notifier.add(InstagramNotifier(
+                instagram_username, 
+                instagram_password, 
+                instagram_thread_id
+            ))
+        
         self.notified_events = set()
 
     def _check_and_notify_attendance(self):

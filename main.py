@@ -29,6 +29,11 @@ PASSWORD = os.getenv('CESAR_PASSWORD', '')
 WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', '')
 ROLE_ID = os.getenv('DISCORD_ROLE_ID', '1324662356868337775')
 
+# === Instagram (optional) ===
+INSTAGRAM_USERNAME = os.getenv('INSTAGRAM_USERNAME', '')
+INSTAGRAM_PASSWORD = os.getenv('INSTAGRAM_PASSWORD', '')
+INSTAGRAM_THREAD_ID = os.getenv('INSTAGRAM_THREAD_ID', '')
+
 # === Scheduling (from .env with defaults) ===
 BOT_START_HOUR = int(os.getenv('BOT_START_HOUR', '9'))
 BOT_START_MINUTE = int(os.getenv('BOT_START_MINUTE', '13'))
@@ -68,11 +73,19 @@ def main():
         logger.error("Missing CESAR_USERNAME or CESAR_PASSWORD in .env")
         sys.exit(1)
 
-    if args.command in ['listen', 'test', 'session'] and not WEBHOOK_URL:
-        logger.error("Missing DISCORD_WEBHOOK_URL in .env")
+    # At least one notifier must be configured
+    has_discord = bool(WEBHOOK_URL)
+    has_instagram = bool(INSTAGRAM_USERNAME and INSTAGRAM_PASSWORD and INSTAGRAM_THREAD_ID)
+    
+    if args.command in ['listen', 'test', 'session'] and not (has_discord or has_instagram):
+        logger.error("Missing notification channel. Set DISCORD_WEBHOOK_URL and/or INSTAGRAM_* in .env")
         sys.exit(1)
 
-    bot = CesarAppelBot(USERNAME, PASSWORD, WEBHOOK_URL, ROLE_ID)
+    bot = CesarAppelBot(
+        USERNAME, PASSWORD, 
+        WEBHOOK_URL, ROLE_ID,
+        INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD, INSTAGRAM_THREAD_ID
+    )
 
     if args.command == 'session':
         if args.type == 'morning':
