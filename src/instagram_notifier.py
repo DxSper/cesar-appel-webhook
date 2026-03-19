@@ -8,13 +8,21 @@ if TYPE_CHECKING:
     from instagrapi import Client
 
 try:
+    import pyotp
+    PYOTP_AVAILABLE = True
+except ImportError:
+    pyotp = None  # type: ignore
+    PYOTP_AVAILABLE = False
+
+try:
     from instagrapi import Client
-    from instagrapi.exceptions import LoginRequired, ChallengeRequired
+    from instagrapi.exceptions import LoginRequired, ChallengeRequired, TwoFactorRequired
     INSTAGRAPI_AVAILABLE = True
 except ImportError:
     Client = None  # type: ignore
     LoginRequired = Exception
     ChallengeRequired = Exception
+    TwoFactorRequired = Exception
     INSTAGRAPI_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
@@ -28,10 +36,11 @@ class InstagramNotifier:
     
     SESSION_FILE = Path.home() / '.cesar-bot' / 'instagram_session.json'
     
-    def __init__(self, username, password, target_thread_id=None):
+    def __init__(self, username, password, target_thread_id=None, totp_secret=None):
         self.username = username
         self.password = password
         self.target_thread_id = target_thread_id
+        self.totp_secret = totp_secret
         self.client = None
         
         # Ensure session directory exists
@@ -79,9 +88,32 @@ class InstagramNotifier:
             self.client = client
             return self.client
             
+        except TwoFactorRequired:
+            if self.totp_secret and PYOTP_AVAILABLE:
+                logger.info("2FA challenge required, generating TOTP code...")
+                try:
+                    totp = pyotp.TOTP(self.totp_secret)
+                    code = totp.now()
+                    logger.info(f"TOTP code generated: {code}")
+                    
+                    # Retry login with TOTP code
+                    client.login(self.username, self.password, verification_code=code)
+                    
+                    # Save session for next time
+                    client.dump_settings(self.SESSION_FILE)
+                    logger.info("Login with 2FA successful, session saved")
+                    
+                    self.client = client
+                    return self.client
+                except Exception as e:
+                    logger.error(f"TOTP login failed: {e}")
+                    return None
+            else:
+                logger.error("Instagram 2FA required but no TOTP secret configured.")
+                logger.info(f"Set INSTAGRAM_TOTP_SECRET in .env with your TOTP secret")
+                return None
         except ChallengeRequired:
-            logger.error("Instagram 2FA verification required. Please login manually first:")
-            logger.info(f"  instagrapi login --session {self.SESSION_FILE}")
+            logger.error("Instagram challenge required (email verification). Please complete manually.")
             return None
         except Exception as e:
             error_msg = str(e).lower()

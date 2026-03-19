@@ -65,7 +65,7 @@ class CesarAppelBot:
     """Manages the session-based application logic."""
     
     def __init__(self, username, password, webhook_url, role_id, instagram_username=None, 
-                 instagram_password=None, instagram_thread_id=None):
+                 instagram_password=None, instagram_thread_id=None, instagram_totp_secret=None):
         self.client = CesarClient(username, password)
         
         # Multi-notifier setup
@@ -81,7 +81,8 @@ class CesarAppelBot:
             self.notifier.add(InstagramNotifier(
                 instagram_username, 
                 instagram_password, 
-                instagram_thread_id
+                instagram_thread_id,
+                instagram_totp_secret
             ))
         
         self.notified_events = set()

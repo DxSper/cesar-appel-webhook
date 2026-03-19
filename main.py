@@ -33,6 +33,7 @@ ROLE_ID = os.getenv('DISCORD_ROLE_ID', '1324662356868337775')
 INSTAGRAM_USERNAME = os.getenv('INSTAGRAM_USERNAME', '')
 INSTAGRAM_PASSWORD = os.getenv('INSTAGRAM_PASSWORD', '')
 INSTAGRAM_THREAD_ID = os.getenv('INSTAGRAM_THREAD_ID', '')
+INSTAGRAM_TOTP_SECRET = os.getenv('INSTAGRAM_TOTP_SECRET', '')
 
 # === Scheduling (from .env with defaults) ===
 BOT_START_HOUR = int(os.getenv('BOT_START_HOUR', '9'))
@@ -84,7 +85,8 @@ def main():
     bot = CesarAppelBot(
         USERNAME, PASSWORD, 
         WEBHOOK_URL, ROLE_ID,
-        INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD, INSTAGRAM_THREAD_ID
+        INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD, INSTAGRAM_THREAD_ID,
+        INSTAGRAM_TOTP_SECRET
     )
 
     if args.command == 'session':
