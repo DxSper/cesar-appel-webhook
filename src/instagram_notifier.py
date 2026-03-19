@@ -79,12 +79,20 @@ class InstagramNotifier:
             self.client = client
             return self.client
             
-        except ChallengeRequired as e:
-            logger.error(f"Challenge required (2FA or email verification): {e}")
-            logger.info("Please complete verification and try again")
+        except ChallengeRequired:
+            logger.error("Instagram 2FA verification required. Please login manually first:")
+            logger.info(f"  instagrapi login --session {self.SESSION_FILE}")
             return None
         except Exception as e:
-            logger.error(f"Instagram login failed: {e}")
+            error_msg = str(e).lower()
+            if 'password' in error_msg or 'invalid' in error_msg:
+                logger.error(f"Instagram login failed: Invalid username or password")
+            elif 'locked' in error_msg or 'disabled' in error_msg:
+                logger.error(f"Instagram login failed: Account locked or disabled")
+            elif 'challenge' in error_msg:
+                logger.error(f"Instagram login failed: Verification required")
+            else:
+                logger.error(f"Instagram login failed: {e}")
             return None
     
     def send_message(self, message, thread_id=None):
@@ -113,7 +121,16 @@ class InstagramNotifier:
             logger.info(f"DM sent successfully to thread {target}")
             return True
         except Exception as e:
-            logger.error(f"Failed to send DM: {e}")
+            error_msg = str(e).lower()
+            if 'not' in error_msg and 'found' in error_msg or 'invalid' in error_msg:
+                logger.error(f"Failed to send DM: Thread not found or invalid thread ID")
+            elif 'rate' in error_msg or 'limit' in error_msg:
+                logger.error(f"Failed to send DM: Rate limited by Instagram")
+            elif 'login' in error_msg:
+                logger.error(f"Failed to send DM: Session expired, need to re-login")
+                self.client = None  # Force re-login on next attempt
+            else:
+                logger.error(f"Failed to send DM: {e}")
             return False
     
     def send_attendance_alert(self, call_info):
