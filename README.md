@@ -1,14 +1,15 @@
 # César Attendance Call Bot 🎒
 
-Un bot léger qui surveille l'application César pour détecter les appels de présence et vous notifier via Discord avec mention de rôle.
+Un bot léger qui surveille l'application César pour détecter les appels de présence et vous notifier via Discord et/ou Instagram.
 
 ## Fonctionnalités
 
 - ✅ Détecte automatiquement quand un appel est lancé
-- ✅ Vous notifie sur Discord
+- ✅ Vous notifie sur Discord et/ou Instagram
 - ✅ Ne vous spam pas si vous avez déjà signé
 - ✅ **Léger** : Mode cron (pas de processus permanent)
 - ✅ Tout configurable via `.env`
+- ✅ Support 2FA automatique
 
 ## Installation
 
@@ -23,15 +24,40 @@ cp .env.example .env
 
 Éditez `.env` avec vos informations :
 
+### Variables obligatoires
+
 ```env
-# === REQUIRED ===
 CESAR_USERNAME=votre_identifiant
 CESAR_PASSWORD=votre_mot_de_passe
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+```
 
-# === OPTIONAL (defaults shown) ===
+### Notification Discord (optionnel)
+
+```env
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/VOTRE_WEBHOOK_ID/VOTRE_WEBHOOK_TOKEN
 DISCORD_ROLE_ID=1234567890123456789
+```
 
+Pour créer un webhook Discord : Paramètres du serveur > Intégrations > Webhooks > Nouveau webhook.
+
+### Notification Instagram (optionnel)
+
+```env
+INSTAGRAM_USERNAME=votre_username
+INSTAGRAM_PASSWORD=votre_mot_de_passe
+INSTAGRAM_THREAD_ID=1234567890123456
+# Secret TOTP pour 2FA (optionnel)
+INSTAGRAM_TOTP_SECRET=votre_secret_totp
+```
+
+**Pour trouver le Thread ID** : Ouvrez la conversation Instagram dans le navigateur > Regardez l'URL :
+`https://www.instagram.com/direct/t/XXXXXXXXX/` → le nombre = Thread ID
+
+**Pour le TOTP Secret** : Quand vous configurez l'authentification 2FA sur Instagram, sauvegardez le "secret" (format: `***REMOVED***`). Le bot générera automatiquement les codes.
+
+### Horaires (optionnel)
+
+```env
 # Session matin (9:13 - 13:43)
 BOT_START_HOUR=9
 BOT_START_MINUTE=13
@@ -47,7 +73,7 @@ BOT_AFTERNOON_END_MINUTE=15
 # Intervalle entre chaque vérification (secondes)
 BOT_CHECK_INTERVAL=30
 
-# Heure d'envoi du planning (mode daemon)
+# Heure d'envoi du planning
 SCHEDULE_HOUR=8
 SCHEDULE_MINUTE=0
 ```
@@ -86,25 +112,27 @@ python3 main.py verify           # Vérifier l'état
 python3 main.py test             # Test avec notification
 ```
 
-**Note :** Pour une utilisation normale, utilisez `check_now.sh` avec cron (voir ci-dessus).
-
 ## Structure
 
 ```
 ├── main.py
-├── check_now.sh          # Pour cron
-├── .env.example         # Template config
+├── check_now.sh          # Script pour cron
+├── .env.example          # Template config
+├── requirements.txt
 └── src/
     ├── cesar_client.py
     ├── discord_notifier.py
+    ├── instagram_notifier.py
     ├── bot_loop.py
     └── diagnostics.py
 ```
 
 ## Dépannage
 
-- `python3 main.py verify` pour diagnostiquer
-- `tail -f bot.log` pour voir les logs
+- `python3 main.py verify` - Vérifier la connexion César
+- `tail -f bot.log` - Voir les logs
+- Pour Instagram : le session cookie est sauvegardé dans `~/.cesar-bot/instagram_session.json`
+- Si 2FA requis : vérifiez que `INSTAGRAM_TOTP_SECRET` est correct
 
 ## Licence
 
