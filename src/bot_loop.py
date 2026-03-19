@@ -50,11 +50,14 @@ class CesarAppelBot:
         
         # Send schedule notification if requested (for 8h cron)
         if send_schedule:
-            logger.info("Sending daily schedule notification...")
             lessons = self.client.get_today_schedule()
-            self.notifier.send_schedule_notification(lessons)
-            logger.info("Schedule sent. Exiting.")
-            return  # Exit after sending schedule
+            if lessons:
+                logger.info("Sending daily schedule notification...")
+                self.notifier.send_schedule_notification(lessons)
+                logger.info("Schedule sent. Exiting.")
+            else:
+                logger.info("No classes today. Exiting silently.")
+            return  # Exit after sending schedule (or silently if no lessons)
         
         # Check if there are classes today
         if not self.client.has_events_today():
